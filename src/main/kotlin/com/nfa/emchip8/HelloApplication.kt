@@ -24,6 +24,7 @@ class HelloApplication : Application() {
 
         for (i in 0..1000) {
             chip8.step()
+            println(i)
         }
     }
 }

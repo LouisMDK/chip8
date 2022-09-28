@@ -1,6 +1,7 @@
 package com.nfa.emchip8
 
 import java.io.File
+import kotlin.random.Random
 
 class Chip8(private val screen: Screen) {
 
@@ -9,6 +10,8 @@ class Chip8(private val screen: Screen) {
 
     private var pc = 0
     private var sp = 0
+    private var delayTimer = 0
+    private var soundTimer = 0
 
     private var opcode = 0
     private val V = IntArray(16) // variable registers
@@ -52,7 +55,7 @@ class Chip8(private val screen: Screen) {
         sp = 0
 
         load_fontset()
-        load_rom("tetris.ch8")
+        load_rom("space invaders.ch8")
     }
 
     private fun load_fontset() {
@@ -129,7 +132,7 @@ class Chip8(private val screen: Screen) {
                 return
             }
 
-            0x7000 -> { // add value to register Vx
+            0x7000 -> { // add value kk to register Vx
                 V[x] += kk
                 if (V[x] >= 256) {
                     V[x] -= 256
@@ -147,6 +150,15 @@ class Chip8(private val screen: Screen) {
                 return
             }
 
+            0xB000 -> { // set pc = nnn plus value in V0
+                pc = nnn + V[0]
+                return
+            }
+
+            0xC000 -> { // set Vx = random byte AND kk
+                V[x] = Random.nextInt(256) and kk
+                return
+            }
 
             0xD000 -> { // display
 
@@ -185,6 +197,7 @@ class Chip8(private val screen: Screen) {
                         }
                     }
                 }
+                return
             }
         }
         when (opcode and 0xF00F) {
@@ -253,5 +266,32 @@ class Chip8(private val screen: Screen) {
                 return
             }
         }
+        when (opcode and 0xF0FF) {
+
+            0xF007 -> { // set Vx to the current value of the delay timer
+                V[x] = delayTimer and 0xFF
+                return
+            }
+
+            0xF015 -> { // set the delay timer to the value in Vx
+                delayTimer = V[x]
+                return
+            }
+
+            0xF018 -> { // set the sound timer to the value in Vx
+                soundTimer = V[x]
+                return
+            }
+
+            0xF01E -> { // set I = I + Vx
+                val addition = I + V[x]
+                V[0xF] = if (addition > 0xFFF) 1 else 0
+                I = addition and 0xFFF
+                return
+            }
+
+        }
+        println("Undefined opcode : ${Integer.toHexString(opcode)}")
+        throw Exception()
     }
 }
